@@ -12,7 +12,7 @@ a {
 }
 
 input[type=submit] {
-    width: 300px;
+    width: 150px;
     padding: 10px;
     font-weight: 700;
 }

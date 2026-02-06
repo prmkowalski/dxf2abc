@@ -23,13 +23,15 @@
             <li>Zapisz plik w formacie <b>DXF minimum 2007</b></li>
             <li><input type="file" name="file"></li>
             <li>Wprowadź grubość powłok <b>g = <input type="number" name="g" value="20"> cm</b></li>
-            <li><input type="submit" name="b" value="Pobierz przekonwertowany plik"><br>
+            <li>Pobierz przekonwertowany podkład jako:<br>
+                <input type="submit" name="b" value="Jeden plik (od 2026)">
+                <input type="submit" name="b" value="Dwa lub trzy pliki"><br>
                 <b>POLILINIE</b> zostają rozbite na <b>LINIE / ŁUKI</b><br>
                 <b>LINIE</b> przekonwertowane na dwuwęzłowe pręty<br>
                 <b>ŁUKI, OKRĘGI, ELIPSY</b> na zestawy kilku prętów<br>
                 <b>3DPOW (3DFACE)</b> na powłoki o 3 lub 4 węzłach<br>
                 <b>PUNKTY</b> na dodatkowe węzły</li>
-            <li>Rozpakuj i wczytaj pliki tekstowe w <a href="http://www.pro-soft.gliwice.pl/">ABC</a></li>
+            <li>Rozpakuj / wczytaj pliki tekstowe w <a href="http://www.pro-soft.gliwice.pl/">ABC</a></li>
             <li>Po wczytaniu użyj <b>Węzły => Razem automat</b></li>
         </ol>
         <p>{{ error }}</p>

@@ -42,30 +42,52 @@ def convert():
         except Exception as e:
             return render_template("index.html", error=str(e))
         msp = doc.modelspace()
+        if doc.header["$INSUNITS"] == 4:  # milimetry
+            u = 1e-3
+        elif doc.header["$INSUNITS"] == 5:  # centymetry
+            u = 1e-2
+        else:  # pozostałe
+            u = 1
         for polyline in msp.query("LWPOLYLINE"):
             polyline.explode()
         entities = []
         for i, e in enumerate(msp.query(), start=1):
             if e.dxf.dxftype in ["3DFACE"]:
                 entities.append(
-                    pd.DataFrame(e.wcs_vertices(), columns=["X", "Y", "Z"]).assign(
+                    pd.DataFrame(
+                        [loc * u for loc in e.wcs_vertices()], columns=["X", "Y", "Z"]
+                    ).assign(
                         i=i,
                         Prz=float("nan"),
-                        g=float(request.form["g"])
-                        if e.dxf.color == 256
-                        else e.dxf.color,
+                        g=(
+                            float(request.form["g"])
+                            if e.dxf.color == 256
+                            else e.dxf.color
+                        ),
                     )
                 )
             elif e.dxf.dxftype in ["LINE"]:
                 entities.append(
                     pd.DataFrame(
-                        [[*e.dxf.start, i, 0 if e.dxf.color == 256 else e.dxf.color]],
+                        [
+                            [
+                                *(e.dxf.start * u),
+                                i,
+                                0 if e.dxf.color == 256 else e.dxf.color,
+                            ]
+                        ],
                         columns=["X", "Y", "Z", "i", "Prz"],
                     )
                 )
                 entities.append(
                     pd.DataFrame(
-                        [[*e.dxf.end, i, 0 if e.dxf.color == 256 else e.dxf.color]],
+                        [
+                            [
+                                *(e.dxf.end * u),
+                                i,
+                                0 if e.dxf.color == 256 else e.dxf.color,
+                            ]
+                        ],
                         columns=["X", "Y", "Z", "i", "Prz"],
                     )
                 )
@@ -73,7 +95,13 @@ def convert():
                 for segment in e.flattening(6):
                     entities.append(
                         pd.DataFrame(
-                            [[*segment, i, 0 if e.dxf.color == 256 else e.dxf.color]],
+                            [
+                                [
+                                    *(segment * u),
+                                    i,
+                                    0 if e.dxf.color == 256 else e.dxf.color,
+                                ]
+                            ],
                             columns=["X", "Y", "Z", "i", "Prz"],
                         )
                     )
@@ -82,7 +110,7 @@ def convert():
         if len(df.index) == 0:
             return render_template("index.html", error="Nieprawidłowa geometria.")
         points = [
-            pd.DataFrame([point.dxf.location], columns=["X", "Y", "Z"])
+            pd.DataFrame([point.dxf.location * u], columns=["X", "Y", "Z"])
             for point in msp.query("POINT")
         ]
         wezly = pd.concat([df[["X", "Y", "Z"]], *points], ignore_index=True).round(3)
@@ -103,20 +131,33 @@ def convert():
             df.index += 1
             if len(df.index) > 0:
                 with io.StringIO() as buffer:
-                    df.to_csv(buffer, sep=" ", decimal=",", line_terminator="\r\n")
+                    df.to_csv(
+                        buffer,
+                        sep=" ",
+                        decimal=",",
+                        lineterminator="\r\n",
+                        header=False,
+                    )
                     mem = io.BytesIO()
+                    mem.write(bytes(df.name.split("-")[0] + "\r\n", "utf-8"))
                     mem.write(buffer.getvalue().encode())
                     mem.seek(0)
                     files[df.name] = mem
         output = io.BytesIO()
-        with ZipFile(output, "w") as zip_file:
-            for name, mem in files.items():
-                zip_file.writestr(name, mem.getvalue())
+        if request.form["b"].startswith("Dwa"):
+            download_name = f"{filename}.zip"
+            with ZipFile(output, "w") as zip_file:
+                for name, mem in files.items():
+                    zip_file.writestr(name, mem.getvalue())
+        else:
+            download_name = f"{filename}.txt"
+            for mem in files.values():
+                output.write(mem.getvalue())
         output.seek(0)
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"{filename}.zip",
+            download_name=download_name,
         )
 
 
